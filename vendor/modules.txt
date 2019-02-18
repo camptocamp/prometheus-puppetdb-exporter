@@ -2,6 +2,8 @@
 github.com/beorn7/perks/quantile
 # github.com/golang/protobuf v1.2.0
 github.com/golang/protobuf/proto
+# github.com/jessevdk/go-flags v1.4.0
+github.com/jessevdk/go-flags
 # github.com/konsorten/go-windows-terminal-sequences v1.0.1
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
