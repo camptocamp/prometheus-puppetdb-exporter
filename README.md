@@ -22,3 +22,16 @@ Application Options:
 Help Options:
   -h, --help             Show this help message
 ```
+
+## Metrics
+
+```
+# HELP puppetdb_exporter_build_info puppetdb exporter build informations
+# TYPE puppetdb_exporter_build_info gauge
+puppetdb_exporter_build_info{build_date="2019-02-18",commit_sha="XXXXXXXXXX",golang_version="go1.11.4",version="1.0.0"} 1
+# HELP puppetdb_node_report_status_count Total count of reports status by type
+# TYPE puppetdb_node_report_status_count gauge
+puppetdb_node_report_status_count{status="changed"} 1
+puppetdb_node_report_status_count{status="failed"} 1
+puppetdb_node_report_status_count{status="unchanged"} 1
+```
