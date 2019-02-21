@@ -75,7 +75,7 @@ func main() {
 
 	buildInfo := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "puppetdb_exporter_build_info",
-		Help: "puppetdb exporter build_info",
+		Help: "puppetdb exporter build informations",
 	}, []string{"version", "commit_sha", "build_date", "golang_version"})
 	buildInfo.WithLabelValues(version, commitSha1, buildDate, runtime.Version()).Set(1)
 	prometheus.MustRegister(buildInfo)
