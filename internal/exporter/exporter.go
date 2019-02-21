@@ -72,7 +72,11 @@ func (e *Exporter) Scrape(interval time.Duration) {
 			log.Errorf("failed to get nodes: %s", err)
 		}
 		for _, node := range nodes {
-			statuses[node.LatestReportStatus]++
+			if node.LatestReportStatus != "" {
+				statuses[node.LatestReportStatus]++
+			} else {
+				statuses["unreported"]++
+			}
 		}
 		for statusName, statusValue := range statuses {
 			e.metrics["node_report_status_count"].With(prometheus.Labels{"status": statusName}).Set(float64(statusValue))
