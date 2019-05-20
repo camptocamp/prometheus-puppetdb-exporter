@@ -62,8 +62,15 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 }
 
 // Scrape scrapes PuppetDB and update metrics
-func (e *Exporter) Scrape(interval time.Duration) {
+func (e *Exporter) Scrape(interval time.Duration, unreportedNode string) {
 	var statuses map[string]int
+
+	unreportedDuration, err := time.ParseDuration(unreportedNode)
+	if err != nil {
+		log.Errorf("failed to parse unreported duration: %s", err)
+		return
+	}
+
 	for {
 		statuses = make(map[string]int)
 
@@ -71,13 +78,29 @@ func (e *Exporter) Scrape(interval time.Duration) {
 		if err != nil {
 			log.Errorf("failed to get nodes: %s", err)
 		}
+
 		for _, node := range nodes {
+			if node.ReportTimestamp == "" {
+				statuses["unreported"]++
+				continue
+			}
+			latestReport, err := time.Parse("2006-01-02T15:04:05Z", node.ReportTimestamp)
+			if err != nil {
+				log.Errorf("failed to parse report timestamp: %s", err)
+				continue
+			}
+
+			if latestReport.Add(unreportedDuration).Before(time.Now()) {
+				statuses["unreported"]++
+			}
+
 			if node.LatestReportStatus != "" {
 				statuses[node.LatestReportStatus]++
 			} else {
 				statuses["unreported"]++
 			}
 		}
+
 		for statusName, statusValue := range statuses {
 			e.metrics["node_report_status_count"].With(prometheus.Labels{"status": statusName}).Set(float64(statusValue))
 		}

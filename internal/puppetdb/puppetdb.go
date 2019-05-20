@@ -30,6 +30,7 @@ type Options struct {
 type Node struct {
 	Certname           string `json:"certname"`
 	LatestReportStatus string `json:"latest_report_status"`
+	ReportTimestamp    string `json:"report_timestamp"`
 }
 
 // NewClient creates a new PuppetDB client
