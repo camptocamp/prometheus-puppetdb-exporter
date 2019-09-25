@@ -106,7 +106,7 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string) {
 				reportMetrics, _ := e.client.ReportMetrics(node.LatestReportHash)
 				for _, reportMetric := range reportMetrics {
 					category := fmt.Sprintf("report_%s", reportMetric.Category)
-					e.metrics[category].With(prometheus.Labels{"name": strings.ReplaceAll(strings.Title(reportMetric.Name), "_", " "), "environment": "blah", "host": node.Certname}).Set(reportMetric.Value)
+					e.metrics[category].With(prometheus.Labels{"name": strings.ReplaceAll(strings.Title(reportMetric.Name), "_", " "), "environment": node.ReportEnvironment, "host": node.Certname}).Set(reportMetric.Value)
 				}
 			}
 		}

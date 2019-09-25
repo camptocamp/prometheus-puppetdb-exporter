@@ -30,6 +30,7 @@ type Options struct {
 type Node struct {
 	Certname           string `json:"certname"`
 	LatestReportStatus string `json:"latest_report_status"`
+	ReportEnvironment  string `json:"report_environment"`
 	ReportTimestamp    string `json:"report_timestamp"`
 	LatestReportHash   string `json:"latest_report_hash"`
 }
