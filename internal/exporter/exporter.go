@@ -82,6 +82,13 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string) {
 		}
 
 		for _, node := range nodes {
+			var deactivated string
+			if node.Deactivated == "" {
+				deactivated = "false"
+			} else {
+				deactivated = "true"
+			}
+
 			if node.ReportTimestamp == "" {
 				statuses["unreported"]++
 				continue
@@ -91,7 +98,7 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string) {
 				log.Errorf("failed to parse report timestamp: %s", err)
 				continue
 			}
-			e.metrics["report"].With(prometheus.Labels{"environment": node.ReportEnvironment, "host": node.Certname}).Set(float64(latestReport.Unix()))
+			e.metrics["report"].With(prometheus.Labels{"environment": node.ReportEnvironment, "host": node.Certname, "deactivated": deactivated}).Set(float64(latestReport.Unix()))
 
 			if latestReport.Add(unreportedDuration).Before(time.Now()) {
 				statuses["unreported"]++
@@ -158,7 +165,7 @@ func (e *Exporter) initGauges() {
 		Namespace: "puppet",
 		Name:      "report",
 		Help:      "Timestamp of latest report",
-	}, []string{"environment", "host"})
+	}, []string{"environment", "host", "deactivated"})
 
 	for _, m := range e.metrics {
 		prometheus.MustRegister(m)

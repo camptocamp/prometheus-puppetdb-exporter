@@ -29,6 +29,7 @@ type Options struct {
 // Node is a structure returned by a PuppetDB
 type Node struct {
 	Certname           string `json:"certname"`
+	Deactivated        string `json:"deactivated"`
 	LatestReportStatus string `json:"latest_report_status"`
 	ReportEnvironment  string `json:"report_environment"`
 	ReportTimestamp    string `json:"report_timestamp"`
@@ -95,7 +96,7 @@ func NewClient(options *Options) (p *PuppetDB, err error) {
 
 // Nodes returns the list of nodes
 func (p *PuppetDB) Nodes() (nodes []Node, err error) {
-	err = p.get("nodes", &nodes)
+	err = p.get("nodes", "[\"or\", [\"=\", [\"node\", \"active\"], false], [\"=\", [\"node\", \"active\"], true]]", &nodes)
 	if err != nil {
 		err = fmt.Errorf("failed to get nodes: %s", err)
 		return
@@ -105,7 +106,7 @@ func (p *PuppetDB) Nodes() (nodes []Node, err error) {
 
 // ReportMetrics returns the list of reportMetrics
 func (p *PuppetDB) ReportMetrics(reportHash string) (reportMetrics []ReportMetric, err error) {
-	err = p.get(fmt.Sprintf("reports/%s/metrics", reportHash), &reportMetrics)
+	err = p.get(fmt.Sprintf("reports/%s/metrics", reportHash), "", &reportMetrics)
 	if err != nil {
 		err = fmt.Errorf("failed to get reports: %s", err)
 		return
@@ -113,9 +114,9 @@ func (p *PuppetDB) ReportMetrics(reportHash string) (reportMetrics []ReportMetri
 	return
 }
 
-func (p *PuppetDB) get(endpoint string, object interface{}) (err error) {
+func (p *PuppetDB) get(endpoint string, query string, object interface{}) (err error) {
 	base := strings.TrimRight(p.options.URL, "/")
-	url := fmt.Sprintf("%s/v4/%s", base, endpoint)
+	url := fmt.Sprintf("%s/v4/%s?query=%s", base, endpoint, url.QueryEscape(query))
 	req, err := http.NewRequest("GET", url, strings.NewReader(""))
 	if err != nil {
 		err = fmt.Errorf("failed to build request: %s", err)
