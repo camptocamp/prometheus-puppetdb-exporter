@@ -133,31 +133,31 @@ func (e *Exporter) initGauges() {
 	e.metrics["report_resources"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "puppet",
 		Name:      "report_resources",
-		Help:      "Total count of reports status by type",
+		Help:      "Total count of resources per status",
 	}, []string{"name", "environment", "host"})
 
 	e.metrics["report_time"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "puppet",
 		Name:      "report_time",
-		Help:      "Total count of reports status by type",
+		Help:      "Total execution time per resource type",
 	}, []string{"name", "environment", "host"})
 
 	e.metrics["report_changes"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "puppet",
 		Name:      "report_changes",
-		Help:      "Total count of reports status by type",
+		Help:      "Total count of resources changed",
 	}, []string{"name", "environment", "host"})
 
 	e.metrics["report_events"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "puppet",
 		Name:      "report_events",
-		Help:      "Total count of reports status by type",
+		Help:      "Total count of resources per event",
 	}, []string{"name", "environment", "host"})
 
 	e.metrics["report"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "puppet",
 		Name:      "report",
-		Help:      "Total count of reports status by type",
+		Help:      "Timestamp of latest report",
 	}, []string{"environment", "host"})
 
 	for _, m := range e.metrics {
