@@ -91,6 +91,7 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string) {
 				log.Errorf("failed to parse report timestamp: %s", err)
 				continue
 			}
+			e.metrics["report"].With(prometheus.Labels{"environment": node.ReportEnvironment, "host": node.Certname}).Set(float64(latestReport.Unix()))
 
 			if latestReport.Add(unreportedDuration).Before(time.Now()) {
 				statuses["unreported"]++
@@ -152,6 +153,12 @@ func (e *Exporter) initGauges() {
 		Name:      "report_events",
 		Help:      "Total count of reports status by type",
 	}, []string{"name", "environment", "host"})
+
+	e.metrics["report"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "puppet",
+		Name:      "report",
+		Help:      "Total count of reports status by type",
+	}, []string{"environment", "host"})
 
 	for _, m := range e.metrics {
 		prometheus.MustRegister(m)
