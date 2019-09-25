@@ -1,6 +1,8 @@
 package exporter
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -99,6 +101,14 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string) {
 			} else {
 				statuses["unreported"]++
 			}
+
+			if node.LatestReportHash != "" {
+				reportMetrics, _ := e.client.ReportMetrics(node.LatestReportHash)
+				for _, reportMetric := range reportMetrics {
+					category := fmt.Sprintf("report_%s", reportMetric.Category)
+					e.metrics[category].With(prometheus.Labels{"name": strings.ReplaceAll(strings.Title(reportMetric.Name), "_", " "), "environment": "blah", "host": node.Certname}).Set(reportMetric.Value)
+				}
+			}
 		}
 
 		for statusName, statusValue := range statuses {
@@ -118,6 +128,30 @@ func (e *Exporter) initGauges() {
 		Name:      "node_report_status_count",
 		Help:      "Total count of reports status by type",
 	}, []string{"status"})
+
+	e.metrics["report_resources"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "puppet",
+		Name:      "report_resources",
+		Help:      "Total count of reports status by type",
+	}, []string{"name", "environment", "host"})
+
+	e.metrics["report_time"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "puppet",
+		Name:      "report_time",
+		Help:      "Total count of reports status by type",
+	}, []string{"name", "environment", "host"})
+
+	e.metrics["report_changes"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "puppet",
+		Name:      "report_changes",
+		Help:      "Total count of reports status by type",
+	}, []string{"name", "environment", "host"})
+
+	e.metrics["report_events"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "puppet",
+		Name:      "report_events",
+		Help:      "Total count of reports status by type",
+	}, []string{"name", "environment", "host"})
 
 	for _, m := range e.metrics {
 		prometheus.MustRegister(m)

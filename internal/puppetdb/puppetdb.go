@@ -31,6 +31,14 @@ type Node struct {
 	Certname           string `json:"certname"`
 	LatestReportStatus string `json:"latest_report_status"`
 	ReportTimestamp    string `json:"report_timestamp"`
+	LatestReportHash   string `json:"latest_report_hash"`
+}
+
+// ReportMetric is a structure returned by a PuppetDB
+type ReportMetric struct {
+	Name     string  `json:"name"`
+	Value    float64 `json:"value"`
+	Category string  `json:"category"`
 }
 
 // NewClient creates a new PuppetDB client
@@ -89,6 +97,16 @@ func (p *PuppetDB) Nodes() (nodes []Node, err error) {
 	err = p.get("nodes", &nodes)
 	if err != nil {
 		err = fmt.Errorf("failed to get nodes: %s", err)
+		return
+	}
+	return
+}
+
+// ReportMetrics returns the list of reportMetrics
+func (p *PuppetDB) ReportMetrics(reportHash string) (reportMetrics []ReportMetric, err error) {
+	err = p.get(fmt.Sprintf("reports/%s/metrics", reportHash), &reportMetrics)
+	if err != nil {
+		err = fmt.Errorf("failed to get reports: %s", err)
 		return
 	}
 	return
