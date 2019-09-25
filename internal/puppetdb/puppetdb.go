@@ -116,8 +116,13 @@ func (p *PuppetDB) ReportMetrics(reportHash string) (reportMetrics []ReportMetri
 
 func (p *PuppetDB) get(endpoint string, query string, object interface{}) (err error) {
 	base := strings.TrimRight(p.options.URL, "/")
-	url := fmt.Sprintf("%s/v4/%s?query=%s", base, endpoint, url.QueryEscape(query))
-	req, err := http.NewRequest("GET", url, strings.NewReader(""))
+	var myurl string
+	if query == "" {
+		myurl = fmt.Sprintf("%s/v4/%s", base, endpoint)
+	} else {
+		myurl = fmt.Sprintf("%s/v4/%s?query=%s", base, endpoint, url.QueryEscape(query))
+	}
+	req, err := http.NewRequest("GET", myurl, strings.NewReader(""))
 	if err != nil {
 		err = fmt.Errorf("failed to build request: %s", err)
 		return
