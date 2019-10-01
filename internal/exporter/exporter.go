@@ -25,7 +25,7 @@ var (
 )
 
 // NewPuppetDBExporter returns a new exporter of PuppetDB metrics.
-func NewPuppetDBExporter(url, certPath, caPath, keyPath string, sslSkipVerify bool) (e *Exporter, err error) {
+func NewPuppetDBExporter(url, certPath, caPath, keyPath string, sslSkipVerify bool, categories map[string]struct{}) (e *Exporter, err error) {
 	e = &Exporter{
 		namespace: "puppetdb",
 	}
@@ -44,7 +44,7 @@ func NewPuppetDBExporter(url, certPath, caPath, keyPath string, sslSkipVerify bo
 		return
 	}
 
-	e.initGauges()
+	e.initGauges(categories)
 
 	return
 }
@@ -64,7 +64,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 }
 
 // Scrape scrapes PuppetDB and update metrics
-func (e *Exporter) Scrape(interval time.Duration, unreportedNode string) {
+func (e *Exporter) Scrape(interval time.Duration, unreportedNode string, categories map[string]struct{}) {
 	var statuses map[string]int
 
 	unreportedDuration, err := time.ParseDuration(unreportedNode)
@@ -113,8 +113,11 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string) {
 			if node.LatestReportHash != "" {
 				reportMetrics, _ := e.client.ReportMetrics(node.LatestReportHash)
 				for _, reportMetric := range reportMetrics {
-					category := fmt.Sprintf("report_%s", reportMetric.Category)
-					e.metrics[category].With(prometheus.Labels{"name": strings.ReplaceAll(strings.Title(reportMetric.Name), "_", " "), "environment": node.ReportEnvironment, "host": node.Certname}).Set(reportMetric.Value)
+					_, ok := categories[reportMetric.Category]
+					if ok {
+						category := fmt.Sprintf("report_%s", reportMetric.Category)
+						e.metrics[category].With(prometheus.Labels{"name": strings.ReplaceAll(strings.Title(reportMetric.Name), "_", " "), "environment": node.ReportEnvironment, "host": node.Certname}).Set(reportMetric.Value)
+					}
 				}
 			}
 		}
@@ -127,7 +130,7 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string) {
 	}
 }
 
-func (e *Exporter) initGauges() {
+func (e *Exporter) initGauges(categories map[string]struct{}) {
 	e.metrics = map[string]*prometheus.GaugeVec{}
 
 	e.metrics["node_report_status_count"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -136,29 +139,15 @@ func (e *Exporter) initGauges() {
 		Help:      "Total count of reports status by type",
 	}, []string{"status"})
 
-	e.metrics["report_resources"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "puppet",
-		Name:      "report_resources",
-		Help:      "Total count of resources per status",
-	}, []string{"name", "environment", "host"})
+	for category, _ := range categories {
+		metricName := fmt.Sprintf("report_%s", category)
+		e.metrics[metricName] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: "puppet",
+			Name:      metricName,
+			Help:      fmt.Sprintf("Total count of %s per status", category),
+		}, []string{"name", "environment", "host"})
 
-	e.metrics["report_time"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "puppet",
-		Name:      "report_time",
-		Help:      "Total execution time per resource type",
-	}, []string{"name", "environment", "host"})
-
-	e.metrics["report_changes"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "puppet",
-		Name:      "report_changes",
-		Help:      "Total count of resources changed",
-	}, []string{"name", "environment", "host"})
-
-	e.metrics["report_events"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "puppet",
-		Name:      "report_events",
-		Help:      "Total count of resources per event",
-	}, []string{"name", "environment", "host"})
+	}
 
 	e.metrics["report"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "puppet",

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/jessevdk/go-flags"
@@ -27,6 +28,7 @@ type Config struct {
 	MetricPath     string `long:"metric-path" description:"Path under which to expose metrics." env:"PUPPETDB_METRIC_PATH" default:"/metrics"`
 	Verbose        bool   `long:"verbose" description:"Enable debug mode" env:"PUPPETDB_VERBOSE"`
 	UnreportedNode string `long:"unreported-node" description:"Tag nodes as unreported if the latest report is older than the defined duration." env:"PUPPETDB_UNREPORTED_NODE" default:"2h"`
+	Categories     string `long:"categories" description:"Report metrics categories to scrape." env:"REPORT_METRICS_CATEGORIES" default:"resources,time,changes,events"`
 }
 
 var (
@@ -67,12 +69,19 @@ func main() {
 		log.Fatalf("failed to parse scrape interval duration: %s", err)
 	}
 
-	exp, err := exporter.NewPuppetDBExporter(c.PuppetDBUrl, c.CertFile, c.CACertFile, c.KeyFile, c.SSLSkipVerify)
+	// Create a map[string]struct{} of categories to provide an efficient way to
+	// find if a category exists in the list of categories.
+	cats := strings.Split(c.Categories, ",")
+	categories := make(map[string]struct{}, len(cats))
+	for _, category := range cats {
+		categories[category] = struct{}{}
+	}
+	exp, err := exporter.NewPuppetDBExporter(c.PuppetDBUrl, c.CertFile, c.CACertFile, c.KeyFile, c.SSLSkipVerify, categories)
 	if err != nil {
 		log.Fatalf("failed to initialize exporter: %s", err)
 	}
 
-	go exp.Scrape(interval, c.UnreportedNode)
+	go exp.Scrape(interval, c.UnreportedNode, categories)
 
 	buildInfo := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "puppetdb_exporter_build_info",
