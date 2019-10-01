@@ -125,7 +125,6 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string) {
 
 		time.Sleep(interval)
 	}
-	return
 }
 
 func (e *Exporter) initGauges() {
