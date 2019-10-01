@@ -26,7 +26,7 @@ type Config struct {
 	ListenAddress  string `long:"listen-address" description:"Address to listen on for web interface and telemetry." env:"PUPPETDB_LISTEN_ADDRESS" default:"0.0.0.0:9121"`
 	MetricPath     string `long:"metric-path" description:"Path under which to expose metrics." env:"PUPPETDB_METRIC_PATH" default:"/metrics"`
 	Verbose        bool   `long:"verbose" description:"Enable debug mode" env:"PUPPETDB_VERBOSE"`
-	UnreportedNode string `long:"unreported-node" description:"Tag nodes as unreported if the latest report is older than the defined duration." envv:"PUPPETDB_UNREPORTED_NODE" default:"2h"`
+	UnreportedNode string `long:"unreported-node" description:"Tag nodes as unreported if the latest report is older than the defined duration." env:"PUPPETDB_UNREPORTED_NODE" default:"2h"`
 }
 
 var (
