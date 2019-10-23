@@ -95,6 +95,7 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string, categor
 			}
 			latestReport, err := time.Parse("2006-01-02T15:04:05Z", node.ReportTimestamp)
 			if err != nil {
+				statuses["unreported"]++
 				log.Errorf("failed to parse report timestamp: %s", err)
 				continue
 			}
@@ -102,12 +103,10 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string, categor
 
 			if latestReport.Add(unreportedDuration).Before(time.Now()) {
 				statuses["unreported"]++
-			}
-
-			if node.LatestReportStatus != "" {
-				statuses[node.LatestReportStatus]++
-			} else {
+			} else if node.LatestReportStatus == "" {
 				statuses["unreported"]++
+			} else {
+				statuses[node.LatestReportStatus]++
 			}
 
 			if node.LatestReportHash != "" {
