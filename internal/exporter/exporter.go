@@ -90,23 +90,29 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string, categor
 			}
 
 			if node.ReportTimestamp == "" {
-				statuses["unreported"]++
+				if deactivated == "false" {
+					statuses["unreported"]++
+				}
 				continue
 			}
 			latestReport, err := time.Parse("2006-01-02T15:04:05Z", node.ReportTimestamp)
 			if err != nil {
-				statuses["unreported"]++
+				if deactivated == "false" {
+					statuses["unreported"]++
+				}
 				log.Errorf("failed to parse report timestamp: %s", err)
 				continue
 			}
 			e.metrics["report"].With(prometheus.Labels{"environment": node.ReportEnvironment, "host": node.Certname, "deactivated": deactivated}).Set(float64(latestReport.Unix()))
 
-			if latestReport.Add(unreportedDuration).Before(time.Now()) {
-				statuses["unreported"]++
-			} else if node.LatestReportStatus == "" {
-				statuses["unreported"]++
-			} else {
-				statuses[node.LatestReportStatus]++
+			if deactivated == "false" {
+				if latestReport.Add(unreportedDuration).Before(time.Now()) {
+					statuses["unreported"]++
+				} else if node.LatestReportStatus == "" {
+					statuses["unreported"]++
+				} else {
+					statuses[node.LatestReportStatus]++
+				}
 			}
 
 			if node.LatestReportHash != "" {
