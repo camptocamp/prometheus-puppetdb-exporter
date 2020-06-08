@@ -2,6 +2,8 @@ DEPS = $(wildcard */*.go)
 VERSION = $(shell git describe --always --dirty)
 COMMIT_SHA1 = $(shell git rev-parse HEAD)
 BUILD_DATE = $(shell date +%Y-%m-%d)
+OS = linux
+ARCH = amd64
 
 all: vendor lint vet prometheus-puppetdb-exporter
 
@@ -11,6 +13,11 @@ prometheus-puppetdb-exporter: main.go $(DEPS)
 		  -ldflags="-X main.version=$(VERSION) -X main.commitSha1=$(COMMIT_SHA1) -X main.buildDate=$(BUILD_DATE)" \
 	    -installsuffix cgo -o $@ $<
 	strip $@
+
+release: prometheus-puppetdb-exporter-$(VERSION).$(OS)-$(ARCH).tar.gz
+
+%.tar.gz: prometheus-puppetdb-exporter LICENSE
+	tar cvzf $@ --transform 's,^,$*/,' $^
 
 clean:
 	rm -f prometheus-puppetdb-exporter
