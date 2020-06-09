@@ -24,7 +24,7 @@ type Config struct {
 	CACertFile     string `long:"ca-file" description:"A PEM encoded CA's certificate." env:"PUPPETDB_CA_FILE"`
 	SSLSkipVerify  bool   `long:"ssl-skip-verify" description:"Skip SSL verification." env:"PUPPETDB_SSL_SKIP_VERIFY"`
 	ScrapeInterval string `long:"scrape-interval" description:"Duration between two scrapes." env:"PUPPETDB_SCRAPE_INTERVAL" default:"5s"`
-	ListenAddress  string `long:"listen-address" description:"Address to listen on for web interface and telemetry." env:"PUPPETDB_LISTEN_ADDRESS" default:"0.0.0.0:9121"`
+	ListenAddress  string `long:"listen-address" description:"Address to listen on for web interface and telemetry." env:"PUPPETDB_LISTEN_ADDRESS" default:"0.0.0.0:9635"`
 	MetricPath     string `long:"metric-path" description:"Path under which to expose metrics." env:"PUPPETDB_METRIC_PATH" default:"/metrics"`
 	Verbose        bool   `long:"verbose" description:"Enable debug mode" env:"PUPPETDB_VERBOSE"`
 	UnreportedNode string `long:"unreported-node" description:"Tag nodes as unreported if the latest report is older than the defined duration." env:"PUPPETDB_UNREPORTED_NODE" default:"2h"`
