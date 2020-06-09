@@ -15,7 +15,7 @@ Application Options:
       --ca-file=         A PEM encoded CA's certificate. [$PUPPETDB_CA_FILE]
       --ssl-skip-verify  Skip SSL verification. [$PUPPETDB_SSL_SKIP_VERIFY]
       --scrape-interval= Duration between two scrapes. (default: 5s) [$PUPPETDB_SCRAPE_INTERVAL]
-      --listen-address=  Address to listen on for web interface and telemetry. (default: 0.0.0.0:9121)
+      --listen-address=  Address to listen on for web interface and telemetry. (default: 0.0.0.0:9635)
                          [$PUPPETDB_LISTEN_ADDRESS]
       --metric-path=     Path under which to expose metrics. (default: /metrics) [$PUPPETDB_METRIC_PATH]
       --verbose          Enable debug mode [$PUPPETDB_VERBOSE]
