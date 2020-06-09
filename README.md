@@ -9,7 +9,7 @@ Usage:
 
 Application Options:
       --version          Show version.
-  -u, --puppetdb-url=    PuppetDB base URL. [$PUPPETDB_URL]
+  -u, --puppetdb-url=    PuppetDB base URL. (default: https://puppetdb:8081/pdb/query) [$PUPPETDB_URL]
       --cert-file=       A PEM encoded certificate file. [$PUPPETDB_CERT_FILE]
       --key-file=        A PEM encoded private key file. [$PUPPETDB_KEY_FILE]
       --ca-file=         A PEM encoded CA's certificate. [$PUPPETDB_CA_FILE]
