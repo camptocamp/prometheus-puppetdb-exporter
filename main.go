@@ -18,7 +18,7 @@ import (
 // Config stores handler's configuration
 type Config struct {
 	Version        bool   `long:"version" description:"Show version."`
-	PuppetDBUrl    string `short:"u" long:"puppetdb-url" description:"PuppetDB base URL." env:"PUPPETDB_URL" required:"true"`
+	PuppetDBUrl    string `short:"u" long:"puppetdb-url" description:"PuppetDB base URL." env:"PUPPETDB_URL" required:"true" default:"https://puppetdb:8081/pdb/query"`
 	CertFile       string `long:"cert-file" description:"A PEM encoded certificate file." env:"PUPPETDB_CERT_FILE"`
 	KeyFile        string `long:"key-file" description:"A PEM encoded private key file." env:"PUPPETDB_KEY_FILE"`
 	CACertFile     string `long:"ca-file" description:"A PEM encoded CA's certificate." env:"PUPPETDB_CA_FILE"`
