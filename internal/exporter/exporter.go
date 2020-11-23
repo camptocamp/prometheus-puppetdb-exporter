@@ -65,8 +65,6 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 // Scrape scrapes PuppetDB and update metrics
 func (e *Exporter) Scrape(interval time.Duration, unreportedNode string, categories map[string]struct{}) {
-	var statuses map[string]int
-
 	unreportedDuration, err := time.ParseDuration(unreportedNode)
 	if err != nil {
 		log.Errorf("failed to parse unreported duration: %s", err)
@@ -74,7 +72,7 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string, categor
 	}
 
 	for {
-		statuses = make(map[string]int)
+		statuses := make(map[string]int)
 
 		nodes, err := e.client.Nodes()
 		if err != nil {
