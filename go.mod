@@ -1,5 +1,7 @@
 module github.com/camptocamp/prometheus-puppetdb-exporter
 
+go 1.15
+
 require (
 	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 // indirect
 	github.com/golang/protobuf v1.2.0 // indirect

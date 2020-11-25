@@ -81,6 +81,9 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string, categor
 			log.Errorf("failed to get nodes: %s", err)
 		}
 
+		e.metrics["report"].Reset()
+		e.metrics["node_report_status_count"].Reset()
+
 		for _, node := range nodes {
 			var deactivated string
 			if node.Deactivated == "" {
