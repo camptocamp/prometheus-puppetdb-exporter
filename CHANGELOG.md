@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/camptocamp/prometheus-puppetdb-exporter/tree/1.1.0) (2020-12-03)
+
+[Full Changelog](https://github.com/camptocamp/prometheus-puppetdb-exporter/compare/1.0.0...1.1.0)
+
+**Closed issues:**
+
+- Deactivated nodes still appear [\#8](https://github.com/camptocamp/prometheus-puppetdb-exporter/issues/8)
+
+**Improvements:**
+
+- Remove legacy `vendor/` directory
+
 ## [1.0.0](https://github.com/camptocamp/prometheus-puppetdb-exporter/tree/1.0.0) (2020-06-09)
 
 [Full Changelog](https://github.com/camptocamp/prometheus-puppetdb-exporter/compare/0.1.0...1.0.0)
