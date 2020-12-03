@@ -147,7 +147,7 @@ func (e *Exporter) initGauges(categories map[string]struct{}) {
 		Help:      "Total count of reports status by type",
 	}, []string{"status"})
 
-	for category, _ := range categories {
+	for category := range categories {
 		metricName := fmt.Sprintf("report_%s", category)
 		e.metrics[metricName] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: "puppet",
