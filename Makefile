@@ -5,7 +5,7 @@ BUILD_DATE = $(shell date +%Y-%m-%d)
 GOOS = linux
 ARCH = amd64
 
-all: vendor lint vet prometheus-puppetdb-exporter
+all: lint vet prometheus-puppetdb-exporter
 
 prometheus-puppetdb-exporter: main.go $(DEPS)
 	GO111MODULE=on CGO_ENABLED=0 GOOS=$(GOOS) \
@@ -23,8 +23,8 @@ clean:
 	rm -f prometheus-puppetdb-exporter
 
 lint:
-	@ go get -v golang.org/x/lint/golint
-	@for file in $$(git ls-files '*.go' | grep -v '_workspace/' | grep -v 'vendor/'); do \
+	@GO111MODULE=off go get -v golang.org/x/lint/golint
+	@for file in $$(git ls-files '*.go' | grep -v '_workspace/'); do \
 		export output="$$(golint $${file} | grep -v 'type name will be used as docker.DockerInfo')"; \
 		[ -n "$${output}" ] && echo "$${output}" && export status=1; \
 	done; \
@@ -33,7 +33,4 @@ lint:
 vet: main.go
 	go vet $<
 
-vendor:
-	go mod vendor
-
-.PHONY: all lint vet clean vendor
+.PHONY: all lint vet clean
