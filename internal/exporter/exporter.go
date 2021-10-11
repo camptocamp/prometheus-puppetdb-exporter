@@ -2,6 +2,7 @@ package exporter
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,21 +14,20 @@ import (
 
 // Exporter implements the prometheus.Exporter interface, and exports PuppetDB metrics
 type Exporter struct {
-	client    *puppetdb.PuppetDB
-	namespace string
-	metrics   map[string]*prometheus.GaugeVec
+	client         *puppetdb.PuppetDB
+	namespace      string
+	unreportedNode time.Duration
+	categories     map[string]struct{}
+	metrics        map[string]*prometheus.GaugeVec
+	interval       time.Duration
 }
 
-var (
-	metricMap = map[string]string{
-		"node_status_count": "node_status_count",
-	}
-)
-
 // NewPuppetDBExporter returns a new exporter of PuppetDB metrics.
-func NewPuppetDBExporter(url, certPath, caPath, keyPath string, sslSkipVerify bool, categories map[string]struct{}) (e *Exporter, err error) {
+func NewPuppetDBExporter(url, certPath, caPath, keyPath string, sslSkipVerify bool, unreportedNode time.Duration, categories map[string]struct{}, interval time.Duration) (e *Exporter, err error) {
 	e = &Exporter{
-		namespace: "puppetdb",
+		namespace:      "puppetdb",
+		unreportedNode: unreportedNode,
+		categories:     categories,
 	}
 
 	opts := &puppetdb.Options{
@@ -44,126 +44,134 @@ func NewPuppetDBExporter(url, certPath, caPath, keyPath string, sslSkipVerify bo
 		return
 	}
 
-	e.initGauges(categories)
+	if interval > 0 {
+		go func() {
+			for {
+				err := e.scrape()
+				if err != nil {
+					log.Errorf("failed to scrape metrics: %s", err)
+				} else {
+					log.Info("scraped metrics")
+				}
+
+				time.Sleep(interval)
+			}
+		}()
+	}
 
 	return
 }
 
 // Describe outputs PuppetDB metric descriptions
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
-	for _, m := range e.metrics {
-		m.Describe(ch)
-	}
+	prometheus.DescribeByCollect(e, ch)
 }
 
 // Collect fetches new metrics from the PuppetDB and updates the appropriate metrics
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
+	if e.interval == 0 {
+		err := e.scrape()
+		if err != nil {
+			log.Errorf("failed to scrape metrics: %s", err)
+			return
+		}
+
+		log.Info("scraped metrics")
+	}
+
 	for _, m := range e.metrics {
 		m.Collect(ch)
 	}
 }
 
-// Scrape scrapes PuppetDB and update metrics
-func (e *Exporter) Scrape(interval time.Duration, unreportedNode string, categories map[string]struct{}) {
-	var statuses map[string]int
+// scrape scrapes PuppetDB and update metrics
+func (e *Exporter) scrape() (err error) {
+	metrics := map[string]*prometheus.GaugeVec{}
 
-	unreportedDuration, err := time.ParseDuration(unreportedNode)
-	if err != nil {
-		log.Errorf("failed to parse unreported duration: %s", err)
-		return
-	}
+	metrics["up"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: e.namespace,
+		Name:      "up",
+		Help:      "Was the last scrape of PuppetDB successful",
+	}, nil)
 
-	for {
-		statuses = make(map[string]int)
-
-		nodes, err := e.client.Nodes()
-		if err != nil {
-			log.Errorf("failed to get nodes: %s", err)
-		}
-
-		e.metrics["report"].Reset()
-		e.metrics["node_report_status_count"].Reset()
-
-		for _, node := range nodes {
-			var deactivated string
-			if node.Deactivated == "" {
-				deactivated = "false"
-			} else {
-				deactivated = "true"
-			}
-
-			if node.ReportTimestamp == "" {
-				if deactivated == "false" {
-					statuses["unreported"]++
-				}
-				continue
-			}
-			latestReport, err := time.Parse("2006-01-02T15:04:05Z", node.ReportTimestamp)
-			if err != nil {
-				if deactivated == "false" {
-					statuses["unreported"]++
-				}
-				log.Errorf("failed to parse report timestamp: %s", err)
-				continue
-			}
-			e.metrics["report"].With(prometheus.Labels{"environment": node.ReportEnvironment, "host": node.Certname, "deactivated": deactivated}).Set(float64(latestReport.Unix()))
-
-			if deactivated == "false" {
-				if latestReport.Add(unreportedDuration).Before(time.Now()) {
-					statuses["unreported"]++
-				} else if node.LatestReportStatus == "" {
-					statuses["unreported"]++
-				} else {
-					statuses[node.LatestReportStatus]++
-				}
-			}
-
-			if node.LatestReportHash != "" {
-				reportMetrics, _ := e.client.ReportMetrics(node.LatestReportHash)
-				for _, reportMetric := range reportMetrics {
-					_, ok := categories[reportMetric.Category]
-					if ok {
-						category := fmt.Sprintf("report_%s", reportMetric.Category)
-						e.metrics[category].With(prometheus.Labels{"name": strings.ReplaceAll(strings.Title(reportMetric.Name), "_", " "), "environment": node.ReportEnvironment, "host": node.Certname}).Set(reportMetric.Value)
-					}
-				}
-			}
-		}
-
-		for statusName, statusValue := range statuses {
-			e.metrics["node_report_status_count"].With(prometheus.Labels{"status": statusName}).Set(float64(statusValue))
-		}
-
-		time.Sleep(interval)
-	}
-}
-
-func (e *Exporter) initGauges(categories map[string]struct{}) {
-	e.metrics = map[string]*prometheus.GaugeVec{}
-
-	e.metrics["node_report_status_count"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	metrics["node_report_status_count"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: e.namespace,
 		Name:      "node_report_status_count",
 		Help:      "Total count of reports status by type",
 	}, []string{"status"})
 
-	for category := range categories {
+	for category := range e.categories {
 		metricName := fmt.Sprintf("report_%s", category)
-		e.metrics[metricName] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		metrics[metricName] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: "puppet",
 			Name:      metricName,
 			Help:      fmt.Sprintf("Total count of %s per status", category),
 		}, []string{"name", "environment", "host"})
-
 	}
 
-	e.metrics["report"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	metrics["report"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "puppet",
 		Name:      "report",
 		Help:      "Timestamp of latest report",
 	}, []string{"environment", "host", "deactivated"})
 
-	for _, m := range e.metrics {
-		prometheus.MustRegister(m)
+	e.metrics = metrics
+
+	statuses := make(map[string]int)
+
+	nodes, err := e.client.Nodes()
+	if err != nil {
+		log.Errorf("failed to get nodes: %s", err)
+		metrics["up"].With(prometheus.Labels{}).Set(0)
+	} else {
+		metrics["up"].With(prometheus.Labels{}).Set(1)
 	}
+
+
+	for _, node := range nodes {
+		deactivated := node.Deactivated != ""
+
+		if node.ReportTimestamp == "" {
+			if !deactivated {
+				statuses["unreported"]++
+			}
+			continue
+		}
+		latestReport, err := time.Parse("2006-01-02T15:04:05Z", node.ReportTimestamp)
+		if err != nil {
+			if !deactivated {
+				statuses["unreported"]++
+			}
+			log.Errorf("failed to parse report timestamp: %s", err)
+			continue
+		}
+		e.metrics["report"].With(prometheus.Labels{"environment": node.ReportEnvironment, "host": node.Certname, "deactivated": strconv.FormatBool(deactivated)}).Set(float64(latestReport.Unix()))
+
+		if !deactivated {
+			if latestReport.Add(e.unreportedNode).Before(time.Now()) {
+				statuses["unreported"]++
+			} else if node.LatestReportStatus == "" {
+				statuses["unreported"]++
+			} else {
+				statuses[node.LatestReportStatus]++
+			}
+		}
+
+		if node.LatestReportHash != "" {
+			reportMetrics, _ := e.client.ReportMetrics(node.LatestReportHash)
+			for _, reportMetric := range reportMetrics {
+				_, ok := e.categories[reportMetric.Category]
+				if ok {
+					category := fmt.Sprintf("report_%s", reportMetric.Category)
+					e.metrics[category].With(prometheus.Labels{"name": strings.ReplaceAll(strings.Title(reportMetric.Name), "_", " "), "environment": node.ReportEnvironment, "host": node.Certname}).Set(reportMetric.Value)
+				}
+			}
+		}
+	}
+
+	for statusName, statusValue := range statuses {
+		e.metrics["node_report_status_count"].With(prometheus.Labels{"status": statusName}).Set(float64(statusValue))
+	}
+
+	return nil
 }
