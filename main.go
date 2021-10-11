@@ -23,7 +23,7 @@ type Config struct {
 	KeyFile        string `long:"key-file" description:"A PEM encoded private key file." env:"PUPPETDB_KEY_FILE"`
 	CACertFile     string `long:"ca-file" description:"A PEM encoded CA's certificate." env:"PUPPETDB_CA_FILE"`
 	SSLSkipVerify  bool   `long:"ssl-skip-verify" description:"Skip SSL verification." env:"PUPPETDB_SSL_SKIP_VERIFY"`
-	ScrapeInterval string `long:"scrape-interval" description:"Duration between two scrapes." env:"PUPPETDB_SCRAPE_INTERVAL" default:"5s"`
+	ScrapeInterval string `long:"scrape-interval" description:"Duration between two scrapes. Set to 0 for synchronous scrapes." env:"PUPPETDB_SCRAPE_INTERVAL" default:"5s"`
 	ListenAddress  string `long:"listen-address" description:"Address to listen on for web interface and telemetry." env:"PUPPETDB_LISTEN_ADDRESS" default:"0.0.0.0:9635"`
 	MetricPath     string `long:"metric-path" description:"Path under which to expose metrics." env:"PUPPETDB_METRIC_PATH" default:"/metrics"`
 	Verbose        bool   `long:"verbose" description:"Enable debug mode" env:"PUPPETDB_VERBOSE"`
@@ -68,6 +68,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to parse scrape interval duration: %s", err)
 	}
+	unreportedNode, err := time.ParseDuration(c.UnreportedNode)
+	if err != nil {
+		log.Fatalf("failed to parse unreported node duration: %s", err)
+	}
 
 	// Create a map[string]struct{} of categories to provide an efficient way to
 	// find if a category exists in the list of categories.
@@ -76,12 +80,21 @@ func main() {
 	for _, category := range cats {
 		categories[category] = struct{}{}
 	}
-	exp, err := exporter.NewPuppetDBExporter(c.PuppetDBUrl, c.CertFile, c.CACertFile, c.KeyFile, c.SSLSkipVerify, categories)
+	collector, err := exporter.NewPuppetDBExporter(
+		c.PuppetDBUrl,
+		c.CertFile,
+		c.CACertFile,
+		c.KeyFile,
+		c.SSLSkipVerify,
+		unreportedNode,
+		categories,
+		interval,
+	)
 	if err != nil {
 		log.Fatalf("failed to initialize exporter: %s", err)
 	}
 
-	go exp.Scrape(interval, c.UnreportedNode, categories)
+	prometheus.MustRegister(collector)
 
 	buildInfo := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "puppetdb_exporter_build_info",
