@@ -2,6 +2,7 @@ package exporter
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -116,30 +117,25 @@ func (e *Exporter) scrape() (err error) {
 	}
 
 	for _, node := range nodes {
-		var deactivated string
-		if node.Deactivated == "" {
-			deactivated = "false"
-		} else {
-			deactivated = "true"
-		}
+		deactivated := node.Deactivated != ""
 
 		if node.ReportTimestamp == "" {
-			if deactivated == "false" {
+			if !deactivated {
 				statuses["unreported"]++
 			}
 			continue
 		}
 		latestReport, err := time.Parse("2006-01-02T15:04:05Z", node.ReportTimestamp)
 		if err != nil {
-			if deactivated == "false" {
+			if !deactivated {
 				statuses["unreported"]++
 			}
 			log.Errorf("failed to parse report timestamp: %s", err)
 			continue
 		}
-		e.metrics["report"].With(prometheus.Labels{"environment": node.ReportEnvironment, "host": node.Certname, "deactivated": deactivated}).Set(float64(latestReport.Unix()))
+		e.metrics["report"].With(prometheus.Labels{"environment": node.ReportEnvironment, "host": node.Certname, "deactivated": strconv.FormatBool(deactivated)}).Set(float64(latestReport.Unix()))
 
-		if deactivated == "false" {
+		if !deactivated {
 			if latestReport.Add(e.unreportedNode).Before(time.Now()) {
 				statuses["unreported"]++
 			} else if node.LatestReportStatus == "" {
