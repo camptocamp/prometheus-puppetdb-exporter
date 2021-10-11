@@ -18,12 +18,6 @@ type Exporter struct {
 	metrics   map[string]*prometheus.GaugeVec
 }
 
-var (
-	metricMap = map[string]string{
-		"node_status_count": "node_status_count",
-	}
-)
-
 // NewPuppetDBExporter returns a new exporter of PuppetDB metrics.
 func NewPuppetDBExporter(url, certPath, caPath, keyPath string, sslSkipVerify bool, categories map[string]struct{}) (e *Exporter, err error) {
 	e = &Exporter{
