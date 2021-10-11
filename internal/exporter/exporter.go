@@ -86,9 +86,15 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 // scrape scrapes PuppetDB and update metrics
 func (e *Exporter) scrape() (err error) {
-	e.metrics = map[string]*prometheus.GaugeVec{}
+	metrics := map[string]*prometheus.GaugeVec{}
 
-	e.metrics["node_report_status_count"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	metrics["up"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: e.namespace,
+		Name:      "up",
+		Help:      "Was the last scrape of PuppetDB successful",
+	}, nil)
+
+	metrics["node_report_status_count"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: e.namespace,
 		Name:      "node_report_status_count",
 		Help:      "Total count of reports status by type",
@@ -96,25 +102,31 @@ func (e *Exporter) scrape() (err error) {
 
 	for category := range e.categories {
 		metricName := fmt.Sprintf("report_%s", category)
-		e.metrics[metricName] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		metrics[metricName] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: "puppet",
 			Name:      metricName,
 			Help:      fmt.Sprintf("Total count of %s per status", category),
 		}, []string{"name", "environment", "host"})
 	}
 
-	e.metrics["report"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	metrics["report"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "puppet",
 		Name:      "report",
 		Help:      "Timestamp of latest report",
 	}, []string{"environment", "host", "deactivated"})
+
+	e.metrics = metrics
 
 	statuses := make(map[string]int)
 
 	nodes, err := e.client.Nodes()
 	if err != nil {
 		log.Errorf("failed to get nodes: %s", err)
+		metrics["up"].With(prometheus.Labels{}).Set(0)
+	} else {
+		metrics["up"].With(prometheus.Labels{}).Set(1)
 	}
+
 
 	for _, node := range nodes {
 		deactivated := node.Deactivated != ""
