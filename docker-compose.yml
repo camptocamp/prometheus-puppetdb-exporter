@@ -1,0 +1,37 @@
+version: "3.9"
+services:
+  exporter:
+    build: .
+    ports:
+      - 9635
+    environment:
+      PUPPETDB_URL: http://puppetdb:8080/pdb/query
+    depends_on:
+      - puppetdb
+  puppetdb:
+    image: puppet/puppetdb
+    ports:
+      - 8080
+      - 8081
+    depends_on:
+      - postgres
+      - puppet
+  postgres:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_PASSWORD=puppetdb
+      - POSTGRES_USER=puppetdb
+  puppet:
+    image: puppet/puppetserver
+    ports:
+      - 8140
+  puppetboard:
+    image: puppet/puppetboard
+    ports:
+      - 8000
+    depends_on:
+      - puppetdb
+  agent:
+    image: puppet/puppet-agent-alpine
+    depends_on:
+      - puppet

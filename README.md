@@ -40,3 +40,22 @@ puppetdb_node_report_status_count{status="changed"} 1
 puppetdb_node_report_status_count{status="failed"} 1
 puppetdb_node_report_status_count{status="unchanged"} 1
 ```
+
+## Development
+
+To locally run the Puppet environment with `docker-compose`, run the following commands:
+
+```shell
+docker-compose up -d puppetdb && docker-compose logs -f puppetdb
+
+docker-compose run agent
+
+docker-compose up -d exporter && docker-compose logs -f exporter
+curl "$(docker-compose port exporter 9635)/metrics"
+```
+
+If you want to use go run, use the following command:
+
+```shell
+PUPPETDB_URL="http://$(docker-compose port puppetdb 8080)/pdb/query" go run .
+```
