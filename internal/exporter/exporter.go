@@ -83,9 +83,12 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string, categor
 
 		e.metrics["report"].Reset()
 		e.metrics["node_report_status_count"].Reset()
+		e.metrics["unreported"].Reset()
 
 		for _, node := range nodes {
 			var deactivated string
+			var unreported int
+
 			if node.Deactivated == "" {
 				deactivated = "false"
 			} else {
@@ -94,15 +97,19 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string, categor
 
 			if node.ReportTimestamp == "" {
 				if deactivated == "false" {
+					unreported = 1
 					statuses["unreported"]++
 				}
+				e.metrics["unreported"].With(prometheus.Labels{"environment": node.ReportEnvironment, "host": node.Certname}).Set(float64(unreported))
 				continue
 			}
 			latestReport, err := time.Parse("2006-01-02T15:04:05Z", node.ReportTimestamp)
 			if err != nil {
 				if deactivated == "false" {
+					unreported = 1
 					statuses["unreported"]++
 				}
+				e.metrics["unreported"].With(prometheus.Labels{"environment": node.ReportEnvironment, "host": node.Certname}).Set(float64(unreported))
 				log.Errorf("failed to parse report timestamp: %s", err)
 				continue
 			}
@@ -110,8 +117,10 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string, categor
 
 			if deactivated == "false" {
 				if latestReport.Add(unreportedDuration).Before(time.Now()) {
+					unreported = 1
 					statuses["unreported"]++
 				} else if node.LatestReportStatus == "" {
+					unreported = 1
 					statuses["unreported"]++
 				} else {
 					statuses[node.LatestReportStatus]++
@@ -128,6 +137,8 @@ func (e *Exporter) Scrape(interval time.Duration, unreportedNode string, categor
 					}
 				}
 			}
+
+			e.metrics["unreported"].With(prometheus.Labels{"environment": node.ReportEnvironment, "host": node.Certname}).Set(float64(unreported))
 		}
 
 		for statusName, statusValue := range statuses {
@@ -162,6 +173,12 @@ func (e *Exporter) initGauges(categories map[string]struct{}) {
 		Name:      "report",
 		Help:      "Timestamp of latest report",
 	}, []string{"environment", "host", "deactivated"})
+
+	e.metrics["unreported"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "puppet",
+		Name:      "unreported",
+		Help:      "Unreported node",
+	}, []string{"environment", "host"})
 
 	for _, m := range e.metrics {
 		prometheus.MustRegister(m)
